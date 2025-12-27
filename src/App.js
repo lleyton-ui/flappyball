@@ -2,10 +2,10 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import './App.css';
 
 const BIRD_SIZE = 35;
-const GAME_WIDTH = 800;
-const GAME_HEIGHT = 600;
 const PIPE_WIDTH = 60;
 const PIPE_GAP = 160;
+const GAME_WIDTH = 800;
+const GAME_HEIGHT = 600;
 
 function App() {
   const [gameState, setGameState] = useState('MENU');
@@ -21,7 +21,6 @@ function App() {
   
   const lastLifeAwardedAt = useRef(0);
 
-  // Speed and Lives logic
   const rawMultiplier = 1 + Math.floor(score / 10);
   const speedMultiplier = Math.min(rawMultiplier, 6); 
   const currentSpeed = 4 * speedMultiplier;
@@ -38,15 +37,19 @@ function App() {
     setLives(0);
     lastLifeAwardedAt.current = 0;
     setGameState('PLAYING');
-    setGameStarted(false); // Shows the Ready prompt
+    setGameStarted(false);
     setPipeLeft(GAME_WIDTH + 200);
     setBirdPosition(300);
     setVelocity(0);
   };
 
-  const handleJump = useCallback(() => {
+  // Unified input handler for Click and Touch
+  const handleAction = useCallback((e) => {
+    // Prevent zooming/scrolling on mobile taps
+    if (e.type === 'touchstart') e.preventDefault();
+    
     if (gameState === 'PLAYING') {
-      if (!gameStarted) setGameStarted(true); // Hides prompt and starts movement
+      if (!gameStarted) setGameStarted(true);
       setVelocity(-10);
     }
   }, [gameState, gameStarted]);
@@ -89,7 +92,7 @@ function App() {
         setPipeLeft(GAME_WIDTH + 200);
         setBirdPosition(300);
         setVelocity(0);
-        setGameStarted(false); // Resets to "Ready" state after losing a life
+        setGameStarted(false);
       } else {
         setGameState('GAMEOVER');
       }
@@ -97,7 +100,11 @@ function App() {
   }, [birdPosition, pipeLeft, lives, gameStarted, gameState, pipeHeight]);
 
   return (
-    <div className="container" onMouseDown={handleJump}>
+    <div 
+      className="container" 
+      onMouseDown={handleAction} 
+      onTouchStart={handleAction}
+    >
       <div className="header-ui">
         <div className="stat-pill">SCORE <span className="gold-text">{score}</span></div>
         <div className="stat-pill">LIVES <span className="red-text">🎁 {lives}/5</span></div>
@@ -106,17 +113,14 @@ function App() {
 
       <div className="game-viewport xmas-bg">
         {[...Array(10)].map((_, i) => <div key={i} className={`snowflake s-${i}`} />)}
-
         <div className="bird ornament" style={{ top: birdPosition, transform: `rotate(${velocity * 3}deg)` }} />
-        
         <div className="pipe candy-cane" style={{ left: pipeLeft, height: pipeHeight, width: PIPE_WIDTH, top: 0 }} />
         <div className="pipe candy-cane" style={{ left: pipeLeft, top: pipeHeight + PIPE_GAP, height: GAME_HEIGHT - pipeHeight - PIPE_GAP, width: PIPE_WIDTH }} />
 
-        {/* READY PROMPT FIX */}
         {gameState === 'PLAYING' && !gameStarted && (
           <div className="ready-container">
              <div className="ready-prompt xmas-text">READY?</div>
-             <div className="click-hint">CLICK TO JUMP! 🎄</div>
+             <div className="click-hint">TAP TO JUMP! 🎄</div>
           </div>
         )}
 
@@ -124,9 +128,17 @@ function App() {
           <div className="menu-overlay">
             <h1 className="xmas-title">MERRY<br/>FLAPPY</h1>
             <div className="glass-panel">
-              <input type="text" placeholder="NAME YOUR ELF..." className="modern-input" value={playerName} onChange={(e) => setPlayerName(e.target.value)} />
+              <input 
+                type="text" 
+                placeholder="NAME..." 
+                className="modern-input" 
+                value={playerName} 
+                onChange={(e) => setPlayerName(e.target.value)}
+                onMouseDown={(e) => e.stopPropagation()} // Allows typing without jumping
+                onTouchStart={(e) => e.stopPropagation()}
+              />
               <button className="btn-primary xmas-btn" onClick={startGame}>START</button>
-              <button className="btn-outline" onClick={() => setShowHowTo(true)}>HOW TO PLAY</button>
+              <button className="btn-outline" onClick={() => setShowHowTo(true)}>RULES</button>
             </div>
           </div>
         )}
@@ -137,10 +149,10 @@ function App() {
               <h2 className="red-text">WINTER RULES</h2>
               <div className="instruction-content">
                 <p>❄️ Tap to jump</p>
-                <p>🎁 +1 Life every 10 pts (Max 5)</p>
+                <p>🎁 +1 Life (Max 5)</p>
                 <p>⚡ Max speed x6.0</p>
               </div>
-              <button className="btn-primary xmas-btn" onClick={() => setShowHowTo(false)}>GOT IT!</button>
+              <button className="btn-primary xmas-btn" onClick={() => setShowHowTo(false)}>OK!</button>
             </div>
           </div>
         )}
@@ -148,7 +160,7 @@ function App() {
         {gameState === 'GAMEOVER' && (
           <div className="menu-overlay">
             <div className="glass-panel">
-              <h2 className="red-text">NAUGHTY LIST!</h2>
+              <h2 className="red-text">GAME OVER!</h2>
               <div className="final-score">{score}</div>
               <button className="btn-primary xmas-btn" onClick={startGame}>RETRY</button>
               <button className="btn-outline" onClick={() => setGameState('MENU')}>MENU</button>

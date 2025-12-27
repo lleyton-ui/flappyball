@@ -140,3 +140,46 @@
   );
   box-shadow: inset 0 0 20px rgba(0,0,0,0.3);
 }
+
+/* Mobile Responsive Scaling */
+@media (max-width: 850px) {
+  .game-viewport {
+    transform: scale(0.45); /* Scales the game down for phones */
+    transform-origin: center top;
+    margin-top: 20px;
+  }
+  
+  .header-ui {
+    transform: scale(0.8);
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .container {
+    justify-content: flex-start;
+    padding-top: 20px;
+  }
+
+  .xmas-title {
+    font-size: 50px;
+  }
+}
+
+/* Very Small Phones */
+@media (max-width: 400px) {
+  .game-viewport {
+    transform: scale(0.38);
+  }
+}
+
+/* Touch optimizations */
+.container {
+  touch-action: none; /* Prevents browser pull-to-refresh */
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.modern-input {
+  user-select: text; /* Re-enables text selection for the input box */
+}
