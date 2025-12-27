@@ -9,9 +9,8 @@ const GAME_HEIGHT = 600;
 
 // PHYSICS CONSTANTS
 const GRAVITY = 0.2;        
-const JUMP_STRENGTH = -4;   
-const MAX_FALL_SPEED = 2;   
-const SLOWMO_COOLDOWN = 10000; 
+const JUMP_STRENGTH = -4.5;   
+const MAX_FALL_SPEED = 4;   
 
 function App() {
   const [gameState, setGameState] = useState('MENU');
@@ -22,7 +21,7 @@ function App() {
   const [pipeHeight, setPipeHeight] = useState(250);
   const [pipeLeft, setPipeLeft] = useState(GAME_WIDTH);
   const [score, setScore] = useState(0);
-  const [lives, setLives] = useState(0); 
+  const [lives, setLives] = useState(0);
   const [playerName, setPlayerName] = useState("");
   const [gameStarted, setGameStarted] = useState(false);
   
@@ -34,6 +33,10 @@ function App() {
 
   const lastLifeAwardedAt = useRef(0);
   const requestRef = useRef();
+
+  // Detection for Mobile Speed Sync
+  const isMobile = typeof window !== 'undefined' && window.innerWidth <= 850;
+  const mobileAdjustment = isMobile ? 1.4 : 1.0; 
 
   useEffect(() => {
     const saved = JSON.parse(localStorage.getItem('flappy_leaderboard')) || [];
@@ -48,11 +51,11 @@ function App() {
     }
   }, [score]);
 
-  // Speed Logic
+  // SYNCED SPEED LOGIC
   const rawMultiplier = 1 + Math.floor(score / 10) * 0.2;
   const baseSpeedMultiplier = Math.min(rawMultiplier, 2.0);
   const speedMultiplier = isSlowMo ? baseSpeedMultiplier * 0.5 : baseSpeedMultiplier;
-  const currentSpeed = 3.5 * speedMultiplier;
+  const currentSpeed = 3.5 * speedMultiplier * mobileAdjustment;
 
   // Timers Logic
   useEffect(() => {
@@ -85,7 +88,7 @@ function App() {
     setCooldownTimer(0);
     lastLifeAwardedAt.current = 0;
     setGameState('PLAYING');
-    setGameStarted(false); // Triggers the Ready screen
+    setGameStarted(false); 
     setPipeLeft(GAME_WIDTH);
     setBirdPosition(300);
     setVelocity(0);
@@ -111,17 +114,16 @@ function App() {
 
   const handleAction = useCallback((e) => {
     if (gameState === 'PLAYING') {
-      if (!gameStarted) {
-        setGameStarted(true); // This starts the physics
-      }
-      setVelocity(JUMP_STRENGTH);
+      if (!gameStarted) setGameStarted(true);
+      setVelocity(JUMP_STRENGTH * mobileAdjustment);
     }
-  }, [gameState, gameStarted]);
+  }, [gameState, gameStarted, mobileAdjustment]);
 
   const animate = useCallback(() => {
     if (gameState === 'PLAYING' && gameStarted) {
       setVelocity(v => {
-        const nextVel = Math.min(v + GRAVITY, MAX_FALL_SPEED);
+        const adjustedGravity = GRAVITY * mobileAdjustment;
+        const nextVel = Math.min(v + adjustedGravity, MAX_FALL_SPEED * mobileAdjustment);
         setBirdPosition(pos => pos + nextVel);
         return nextVel;
       });
@@ -136,7 +138,7 @@ function App() {
       });
     }
     requestRef.current = requestAnimationFrame(animate);
-  }, [gameState, gameStarted, currentSpeed]);
+  }, [gameState, gameStarted, currentSpeed, mobileAdjustment]);
 
   useEffect(() => {
     requestRef.current = requestAnimationFrame(animate);
@@ -152,12 +154,11 @@ function App() {
 
     if (hitPipes || hitBounds) {
       if (lives > 0) {
-        // --- CRITICAL FIX: RESET FOR NEXT LIFE ---
         setLives(l => l - 1);
         setPipeLeft(GAME_WIDTH);
         setBirdPosition(300);
         setVelocity(0);
-        setGameStarted(false); // This makes "READY?" appear again
+        setGameStarted(false); // Resets to "READY?" screen
         setIsSlowMo(false);
         setSlowMoTimer(0);
       } else {
@@ -175,12 +176,11 @@ function App() {
         {isSlowMo && <div className="stat-pill boost-pill">SLO-MO: {slowMoTimer.toFixed(1)}s</div>}
       </div>
 
-      <div className="game-viewport xmas-bg">
+      <div className="game-viewport">
         <div className="bird ornament" style={{ top: birdPosition, transform: `rotate(${Math.min(velocity * 4, 90)}deg)`, left: '100px' }} />
         <div className="pipe candy-cane" style={{ left: pipeLeft, height: pipeHeight, width: PIPE_WIDTH, top: 0 }} />
         <div className="pipe candy-cane" style={{ left: pipeLeft, top: pipeHeight + PIPE_GAP, height: GAME_HEIGHT - pipeHeight - PIPE_GAP, width: PIPE_WIDTH }} />
 
-        {/* --- READY SCREEN (Shows whenever gameStarted is false) --- */}
         {gameState === 'PLAYING' && !gameStarted && (
           <div className="ready-container">
              <div className="ready-prompt">READY?</div>
@@ -195,7 +195,7 @@ function App() {
               disabled={isSlowMo || cooldownTimer > 0}
             >
                 {isSlowMo ? `ACTIVE (${slowMoTimer.toFixed(1)}s)` : 
-                 cooldownTimer > 0 ? `READY IN ${Math.ceil(cooldownTimer)}s` : "❄️ SLO-MO"}
+                 cooldownTimer > 0 ? `COOLDOWN ${Math.ceil(cooldownTimer)}s` : "❄️ SLO-MO"}
             </button>
         )}
 
@@ -216,12 +216,12 @@ function App() {
             <div className="glass-panel">
               <h2 className="gold-text">TOP SCORES</h2>
               <div className="leaderboard-list">
-                {leaderboard.length > 0 ? leaderboard.map((entry, i) => (
+                {leaderboard.map((entry, i) => (
                   <div key={entry.id} className="leaderboard-item">
                     <span>{i + 1}. {entry.name}</span>
                     <span className="gold-text">{entry.score}</span>
                   </div>
-                )) : <div className="leaderboard-item">No scores yet!</div>}
+                ))}
               </div>
               <button className="btn-primary" onClick={(e) => { e.stopPropagation(); setShowLeaderboard(false); }}>CLOSE</button>
             </div>

@@ -25,11 +25,11 @@
   touch-action: none; 
 }
 
-/* --- UI HEADER --- */
+/* --- HEADER --- */
 .header-ui { 
   display: flex; 
   gap: 12px; 
-  margin-bottom: 20px; 
+  margin-bottom: 15px; 
   z-index: 10; 
   flex-wrap: wrap;
   justify-content: center;
@@ -56,11 +56,7 @@
   to { box-shadow: 0 0 15px var(--ice-blue); }
 }
 
-.gold-text { color: var(--xmas-gold); }
-.red-text { color: var(--xmas-red); }
-.cyan-text { color: var(--ice-blue); }
-
-/* --- GAME VIEWPORT --- */
+/* --- VIEWPORT --- */
 .game-viewport {
   position: relative; 
   width: 800px; 
@@ -69,34 +65,10 @@
   border: 4px solid var(--xmas-green); 
   border-radius: 20px;
   overflow: hidden;
+  /* Sync fix: Force GPU for mobile speed */
+  transform: translateZ(0);
 }
 
-/* --- SLO-MO BUTTON --- */
-.slow-mo-btn {
-  position: absolute;
-  bottom: 30px;
-  right: 30px;
-  padding: 15px 25px;
-  background: var(--ice-blue);
-  color: #0f172a;
-  border: none;
-  border-radius: 15px;
-  font-weight: 900;
-  cursor: pointer;
-  z-index: 50;
-  box-shadow: 0 4px 15px rgba(0, 229, 255, 0.4);
-  transition: all 0.2s ease;
-}
-
-.slow-mo-btn.cooldown {
-  background: #2d3748;
-  color: #718096;
-  box-shadow: none;
-  cursor: not-allowed;
-  opacity: 0.8;
-}
-
-/* --- GAME OBJECTS --- */
 .bird.ornament {
   position: absolute; 
   width: 35px; 
@@ -118,6 +90,7 @@
     #ffffff 60px
   );
   border: 3px solid #7a0000;
+  will-change: left;
 }
 
 /* --- READY SCREEN --- */
@@ -128,38 +101,43 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.3);
+  background: rgba(0, 0, 0, 0.4);
   z-index: 40;
-  pointer-events: none;
 }
 
 .ready-prompt { 
-  font-size: 90px; 
+  font-size: 80px; 
   font-weight: 900; 
-  color: white;
-  text-shadow: 0 0 30px var(--xmas-red);
-  animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  text-shadow: 0 0 20px var(--xmas-red);
+  animation: popIn 0.3s ease-out;
 }
 
 @keyframes popIn {
-  from { transform: scale(0); opacity: 0; }
+  from { transform: scale(0.5); opacity: 0; }
   to { transform: scale(1); opacity: 1; }
 }
 
-.click-hint { 
-  font-size: 24px; 
-  color: var(--xmas-gold); 
-  font-weight: 700;
-  margin-top: 10px;
-  animation: pulse 1s infinite alternate; 
+/* --- SLO-MO BUTTON --- */
+.slow-mo-btn {
+  position: absolute;
+  bottom: 25px;
+  right: 25px;
+  padding: 15px 25px;
+  background: var(--ice-blue);
+  color: #0f172a;
+  border: none;
+  border-radius: 12px;
+  font-weight: 900;
+  cursor: pointer;
+  z-index: 50;
 }
 
-@keyframes pulse { 
-  from { opacity: 0.5; transform: scale(0.95); } 
-  to { opacity: 1; transform: scale(1.05); } 
+.slow-mo-btn.cooldown {
+  background: #2d3748;
+  color: #718096;
 }
 
-/* --- OVERLAYS & MODALS --- */
+/* --- UI PANELS --- */
 .menu-overlay {
   position: absolute; 
   inset: 0; 
@@ -176,76 +154,53 @@
   padding: 30px; 
   border-radius: 24px;
   width: 380px; 
-  text-align: center; 
   border: 2px solid var(--xmas-gold);
-}
-
-/* --- LEADERBOARD --- */
-.leaderboard-list {
-  margin: 20px 0;
-  background: rgba(255,255,255,0.05);
-  border-radius: 12px;
-  padding: 10px;
+  text-align: center;
 }
 
 .leaderboard-item {
   display: flex;
   justify-content: space-between;
-  padding: 12px;
+  padding: 10px;
   border-bottom: 1px solid rgba(255,255,255,0.1);
-  font-size: 16px;
-}
-
-/* --- INPUTS & BUTTONS --- */
-.modern-input {
-  width: 100%; 
-  padding: 12px; 
-  border-radius: 12px; 
-  border: 1px solid var(--xmas-green);
-  background: #1e293b; 
-  color: white; 
-  margin-bottom: 15px; 
-  text-align: center;
-}
-
-.btn-primary, .xmas-btn {
-  width: 100%; 
-  padding: 14px; 
-  background: var(--xmas-red); 
-  color: white;
-  border: none; 
-  border-radius: 12px; 
-  font-weight: 900; 
-  cursor: pointer;
-  font-size: 18px;
-  margin-bottom: 8px;
-}
-
-.btn-outline {
-  width: 100%; 
-  padding: 10px; 
-  background: transparent;
-  color: #bbb; 
-  border: 1px solid #444; 
-  border-radius: 12px; 
-  cursor: pointer;
-  margin-top: 5px;
 }
 
 .xmas-title { 
   font-size: 60px; 
   font-weight: 900; 
-  text-align: center; 
+  text-align: center;
   margin-bottom: 20px;
-  line-height: 1;
   text-shadow: 0 0 20px var(--xmas-red); 
 }
 
-/* --- MOBILE RESPONSIVE --- */
+.gold-text { color: var(--xmas-gold); }
+.red-text { color: var(--xmas-red); }
+.cyan-text { color: var(--ice-blue); }
+
+.modern-input {
+  width: 100%; padding: 12px; border-radius: 12px; margin-bottom: 15px;
+  background: #1e293b; color: white; border: 1px solid var(--xmas-green);
+  text-align: center;
+}
+
+.btn-primary, .xmas-btn {
+  width: 100%; padding: 14px; background: var(--xmas-red); color: white;
+  border: none; border-radius: 12px; font-weight: 900; cursor: pointer;
+  margin-bottom: 10px;
+}
+
+.btn-outline {
+  width: 100%; padding: 10px; background: transparent; color: #ccc;
+  border: 1px solid #444; border-radius: 12px; cursor: pointer;
+}
+
+/* --- MOBILE SYNC FIX --- */
 @media (max-width: 850px) {
   .game-viewport { 
-    transform: scale(0.45); 
+    transform: scale(0.5); 
     transform-origin: center top; 
+    margin-top: -50px;
   }
-  .header-ui { transform: scale(0.8); gap: 5px; }
+  .header-ui { transform: scale(0.8); }
+  .slow-mo-btn { bottom: 10px; right: 10px; scale: 1.5; transform-origin: bottom right; }
 }
