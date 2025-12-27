@@ -7,7 +7,6 @@ const PIPE_GAP = 170;
 const GAME_WIDTH = 800;
 const GAME_HEIGHT = 600;
 
-// PHYSICS CONSTANTS
 const GRAVITY = 0.2;        
 const JUMP_STRENGTH = -4.5;   
 const MAX_FALL_SPEED = 4;   
@@ -25,12 +24,10 @@ function App() {
   const [playerName, setPlayerName] = useState("");
   const [gameStarted, setGameStarted] = useState(false);
   
-  // BOOST 1: SLO-MO
   const [isSlowMo, setIsSlowMo] = useState(false);
   const [slowMoTimer, setSlowMoTimer] = useState(0);
   const [slowMoCooldown, setSlowMoCooldown] = useState(0);
 
-  // BOOST 2: +2 SCORE
   const [isScoreBoost, setIsScoreBoost] = useState(false);
   const [scoreBoostTimer, setScoreBoostTimer] = useState(0);
   const [scoreCooldown, setScoreCooldown] = useState(0);
@@ -41,6 +38,24 @@ function App() {
 
   const isMobile = typeof window !== 'undefined' && window.innerWidth <= 850;
   const mobileAdjustment = isMobile ? 1.4 : 1.0; 
+
+  // --- PC KEYBOARD HANDLERS ---
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (gameState !== 'PLAYING') return;
+
+      if (e.key === '1') {
+        triggerSlowMo(e);
+      } else if (e.key === '2') {
+        triggerScoreBoost(e);
+      } else if (e.key === ' ' || e.key === 'ArrowUp') {
+        handleAction();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [gameState, gameStarted, slowMoCooldown, scoreCooldown, isSlowMo, isScoreBoost]);
 
   useEffect(() => {
     const saved = JSON.parse(localStorage.getItem('flappy_leaderboard')) || [];
@@ -86,13 +101,21 @@ function App() {
   };
 
   const triggerSlowMo = (e) => {
-    e.stopPropagation();
-    if (!isSlowMo && slowMoCooldown <= 0 && gameStarted) { setIsSlowMo(true); setSlowMoTimer(4); }
+    if (e && e.stopPropagation) e.stopPropagation(); 
+    if (e && e.cancelable) e.preventDefault();
+    if (!isSlowMo && slowMoCooldown <= 0 && gameStarted) { 
+      setIsSlowMo(true); 
+      setSlowMoTimer(4); 
+    }
   };
 
   const triggerScoreBoost = (e) => {
-    e.stopPropagation();
-    if (!isScoreBoost && scoreCooldown <= 0 && gameStarted) { setIsScoreBoost(true); setScoreBoostTimer(7); }
+    if (e && e.stopPropagation) e.stopPropagation(); 
+    if (e && e.cancelable) e.preventDefault();
+    if (!isScoreBoost && scoreCooldown <= 0 && gameStarted) { 
+      setIsScoreBoost(true); 
+      setScoreBoostTimer(7); 
+    }
   };
 
   const handleAction = useCallback(() => {
@@ -159,11 +182,23 @@ function App() {
 
         {gameState === 'PLAYING' && gameStarted && (
           <div className="boost-controls">
-            <button className={`boost-btn slow ${slowMoCooldown > 0 ? 'cd' : ''}`} onClick={triggerSlowMo} disabled={isSlowMo || slowMoCooldown > 0}>
-              {isSlowMo ? "ACTIVE" : slowMoCooldown > 0 ? `❄️ ${Math.ceil(slowMoCooldown)}s` : "❄️ SLO-MO"}
+            <button 
+              className={`boost-btn slow ${slowMoCooldown > 0 ? 'cd' : ''}`} 
+              onMouseDown={triggerSlowMo} 
+              onTouchStart={triggerSlowMo}
+              disabled={isSlowMo || slowMoCooldown > 0}
+            >
+              <span className="kb-hint">1</span>
+              {isSlowMo ? "ACTIVE" : slowMoCooldown > 0 ? `${Math.ceil(slowMoCooldown)}s` : "❄️ SLOW"}
             </button>
-            <button className={`boost-btn score ${scoreCooldown > 0 ? 'cd' : ''}`} onClick={triggerScoreBoost} disabled={isScoreBoost || scoreCooldown > 0}>
-              {isScoreBoost ? "ACTIVE" : scoreCooldown > 0 ? `🔥 ${Math.ceil(scoreCooldown)}s` : "🔥 +2 SCORE"}
+            <button 
+              className={`boost-btn score ${scoreCooldown > 0 ? 'cd' : ''}`} 
+              onMouseDown={triggerScoreBoost} 
+              onTouchStart={triggerScoreBoost}
+              disabled={isScoreBoost || scoreCooldown > 0}
+            >
+              <span className="kb-hint">2</span>
+              {isScoreBoost ? "ACTIVE" : scoreCooldown > 0 ? `${Math.ceil(scoreCooldown)}s` : "🔥 +2"}
             </button>
           </div>
         )}
@@ -185,10 +220,10 @@ function App() {
             <div className="glass-panel">
               <h2 className="gold-text">HOW TO PLAY</h2>
               <ul className="instruction-list">
-                <li>🖱️ <strong>Click/Tap</strong> to jump.</li>
-                <li>❄️ <strong>Slo-mo</strong>: Slows speed for 4s (10s CD).</li>
-                <li>🔥 <strong>Score+</strong>: +2 points per pipe for 7s (15s CD).</li>
-                <li>🎁 <strong>10 Points</strong> = +1 Life (Max 5).</li>
+                <li>🖱️ <strong>Click / [Space]</strong> to jump.</li>
+                <li>❄️ <strong>Key [1]</strong>: Slo-mo (4s).</li>
+                <li>🔥 <strong>Key [2]</strong>: +2 Score (7s).</li>
+                <li>🎁 <strong>10 Points</strong> = +1 Life.</li>
               </ul>
               <button className="btn-primary" onClick={(e) => { e.stopPropagation(); setShowHowTo(false); }}>GOT IT!</button>
             </div>
