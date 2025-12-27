@@ -4,182 +4,248 @@
   --xmas-red: #d42426;
   --xmas-green: #165b33;
   --xmas-gold: #f8b229;
+  --ice-blue: #00e5ff;
 }
 
-* { box-sizing: border-box; font-family: 'Outfit', sans-serif; }
+* { 
+  box-sizing: border-box; 
+  font-family: 'Outfit', sans-serif; 
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
 
 .container {
-  height: 100vh; background: #050505; color: white;
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  height: 100vh; 
+  background: #050505; 
+  color: white;
+  display: flex; 
+  flex-direction: column; 
+  align-items: center; 
+  justify-content: center;
+  touch-action: none; 
 }
 
-.header-ui { display: flex; gap: 15px; margin-bottom: 20px; }
+/* --- UI HEADER --- */
+.header-ui { 
+  display: flex; 
+  gap: 12px; 
+  margin-bottom: 20px; 
+  z-index: 10; 
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
 .stat-pill {
-  background: rgba(22, 91, 51, 0.4); border: 2px solid var(--xmas-green);
-  padding: 8px 25px; border-radius: 50px; font-weight: 700;
+  background: rgba(22, 91, 51, 0.4); 
+  border: 2px solid var(--xmas-green);
+  padding: 8px 18px; 
+  border-radius: 50px; 
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.boost-pill {
+  border-color: var(--ice-blue);
+  background: rgba(0, 229, 255, 0.2);
+  color: var(--ice-blue);
+  animation: glow 1.5s infinite alternate;
+}
+
+@keyframes glow {
+  from { box-shadow: 0 0 5px var(--ice-blue); }
+  to { box-shadow: 0 0 15px var(--ice-blue); }
 }
 
 .gold-text { color: var(--xmas-gold); }
 .red-text { color: var(--xmas-red); }
-.cyan-text { color: #00e5ff; }
+.cyan-text { color: var(--ice-blue); }
 
+/* --- GAME VIEWPORT --- */
 .game-viewport {
-  position: relative; width: 800px; height: 600px;
-  background: #0f172a; border: 4px solid var(--xmas-green); border-radius: 20px;
+  position: relative; 
+  width: 800px; 
+  height: 600px;
+  background: linear-gradient(to bottom, #0f172a, #1e293b);
+  border: 4px solid var(--xmas-green); 
+  border-radius: 20px;
   overflow: hidden;
 }
 
-/* Candy Cane Pipe Styling */
+/* --- SLO-MO BUTTON --- */
+.slow-mo-btn {
+  position: absolute;
+  bottom: 30px;
+  right: 30px;
+  padding: 15px 25px;
+  background: var(--ice-blue);
+  color: #0f172a;
+  border: none;
+  border-radius: 15px;
+  font-weight: 900;
+  cursor: pointer;
+  z-index: 50;
+  box-shadow: 0 4px 15px rgba(0, 229, 255, 0.4);
+  transition: all 0.2s ease;
+}
+
+.slow-mo-btn.cooldown {
+  background: #2d3748;
+  color: #718096;
+  box-shadow: none;
+  cursor: not-allowed;
+  opacity: 0.8;
+}
+
+/* --- GAME OBJECTS --- */
+.bird.ornament {
+  position: absolute; 
+  width: 35px; 
+  height: 35px;
+  background: var(--xmas-red); 
+  border: 3px solid var(--xmas-gold);
+  border-radius: 50%; 
+  z-index: 10;
+  will-change: top, transform;
+}
+
 .pipe.candy-cane {
   position: absolute;
   background: repeating-linear-gradient(
     45deg,
     var(--xmas-red),
-    var(--xmas-red) 20px,
-    #ffffff 20px,
-    #ffffff 40px
+    var(--xmas-red) 30px,
+    #ffffff 30px,
+    #ffffff 60px
   );
   border: 3px solid #7a0000;
 }
 
-/* Ornament Bird Styling */
-.bird.ornament {
-  position: absolute; left: 100px; width: 35px; height: 35px;
-  background: var(--xmas-red); border: 3px solid var(--xmas-gold);
-  border-radius: 50%; z-index: 10;
-}
-.bird.ornament::before {
-  content: ''; position: absolute; top: -8px; left: 12px;
-  width: 6px; height: 8px; background: var(--xmas-gold);
-}
-
-/* Snowflake Animation */
-.snowflake {
-  position: absolute; width: 5px; height: 5px; background: white;
-  border-radius: 50%; top: -10px; animation: snowfall 5s linear infinite; opacity: 0.5;
-}
-@keyframes snowfall {
-  to { transform: translateY(600px) translateX(20px); }
-}
-.s-0 { left: 10%; animation-delay: 0s; }
-.s-1 { left: 30%; animation-delay: 1s; }
-.s-2 { left: 55%; animation-delay: 2s; }
-.s-3 { left: 80%; animation-delay: 1.5s; }
-
-.menu-overlay {
-  position: absolute; inset: 0; background: rgba(0,0,0,0.8);
-  display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100;
-}
-
-.xmas-title { font-size: 70px; font-weight: 900; text-align: center; color: white; text-shadow: 0 0 20px var(--xmas-red); }
-
-.glass-panel {
-  background: rgba(15, 23, 42, 0.95); padding: 30px; border-radius: 20px;
-  width: 350px; text-align: center; border: 2px solid var(--xmas-gold);
-}
-
-.modern-input {
-  width: 100%; padding: 12px; border-radius: 8px; border: 1px solid var(--xmas-green);
-  background: #1e293b; color: white; margin-bottom: 15px; text-align: center;
-}
-
-.xmas-btn {
-  width: 100%; padding: 12px; background: var(--xmas-red); color: white;
-  border: none; border-radius: 8px; font-weight: 900; cursor: pointer;
-}
-
-.btn-outline {
-  width: 100%; margin-top: 10px; padding: 10px; background: transparent;
-  color: white; border: 1px solid #444; border-radius: 8px; cursor: pointer;
-}
-
-.instruction-content p { margin: 10px 0; font-size: 18px; text-align: left; color: white !important; }
-
-.final-score { font-size: 60px; font-weight: 900; margin: 20px 0; color: var(--xmas-gold); }
-
+/* --- READY SCREEN --- */
 .ready-container {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  text-align: center;
-  z-index: 20;
+  position: absolute; 
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.3);
+  z-index: 40;
   pointer-events: none;
 }
 
-.ready-prompt {
-  font-size: 80px;
-  font-weight: 900;
+.ready-prompt { 
+  font-size: 90px; 
+  font-weight: 900; 
   color: white;
-  text-shadow: 0 0 20px var(--xmas-red), 0 0 40px var(--xmas-red);
-  margin-bottom: 0;
-  letter-spacing: 5px;
+  text-shadow: 0 0 30px var(--xmas-red);
+  animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
-.click-hint {
-  font-size: 24px;
+@keyframes popIn {
+  from { transform: scale(0); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.click-hint { 
+  font-size: 24px; 
+  color: var(--xmas-gold); 
   font-weight: 700;
-  color: var(--xmas-gold);
-  text-shadow: 0 0 10px black;
-  animation: pulse 1s infinite alternate;
+  margin-top: 10px;
+  animation: pulse 1s infinite alternate; 
 }
 
-@keyframes pulse {
-  from { opacity: 0.5; transform: scale(0.95); }
-  to { opacity: 1; transform: scale(1.05); }
+@keyframes pulse { 
+  from { opacity: 0.5; transform: scale(0.95); } 
+  to { opacity: 1; transform: scale(1.05); } 
 }
 
-/* Ensure candy cane stripes are bright */
-.pipe.candy-cane {
-  background: repeating-linear-gradient(
-    45deg,
-    #d42426,
-    #d42426 30px,
-    #ffffff 30px,
-    #ffffff 60px
-  );
-  box-shadow: inset 0 0 20px rgba(0,0,0,0.3);
+/* --- OVERLAYS & MODALS --- */
+.menu-overlay {
+  position: absolute; 
+  inset: 0; 
+  background: rgba(0,0,0,0.85);
+  display: flex; 
+  flex-direction: column; 
+  align-items: center; 
+  justify-content: center; 
+  z-index: 100;
 }
 
-/* Mobile Responsive Scaling */
-@media (max-width: 850px) {
-  .game-viewport {
-    transform: scale(0.45); /* Scales the game down for phones */
-    transform-origin: center top;
-    margin-top: 20px;
-  }
-  
-  .header-ui {
-    transform: scale(0.8);
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 8px;
-  }
-
-  .container {
-    justify-content: flex-start;
-    padding-top: 20px;
-  }
-
-  .xmas-title {
-    font-size: 50px;
-  }
+.glass-panel {
+  background: rgba(15, 23, 42, 0.98); 
+  padding: 30px; 
+  border-radius: 24px;
+  width: 380px; 
+  text-align: center; 
+  border: 2px solid var(--xmas-gold);
 }
 
-/* Very Small Phones */
-@media (max-width: 400px) {
-  .game-viewport {
-    transform: scale(0.38);
-  }
+/* --- LEADERBOARD --- */
+.leaderboard-list {
+  margin: 20px 0;
+  background: rgba(255,255,255,0.05);
+  border-radius: 12px;
+  padding: 10px;
 }
 
-/* Touch optimizations */
-.container {
-  touch-action: none; /* Prevents browser pull-to-refresh */
-  user-select: none;
-  -webkit-tap-highlight-color: transparent;
+.leaderboard-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+  font-size: 16px;
 }
 
+/* --- INPUTS & BUTTONS --- */
 .modern-input {
-  user-select: text; /* Re-enables text selection for the input box */
+  width: 100%; 
+  padding: 12px; 
+  border-radius: 12px; 
+  border: 1px solid var(--xmas-green);
+  background: #1e293b; 
+  color: white; 
+  margin-bottom: 15px; 
+  text-align: center;
+}
+
+.btn-primary, .xmas-btn {
+  width: 100%; 
+  padding: 14px; 
+  background: var(--xmas-red); 
+  color: white;
+  border: none; 
+  border-radius: 12px; 
+  font-weight: 900; 
+  cursor: pointer;
+  font-size: 18px;
+  margin-bottom: 8px;
+}
+
+.btn-outline {
+  width: 100%; 
+  padding: 10px; 
+  background: transparent;
+  color: #bbb; 
+  border: 1px solid #444; 
+  border-radius: 12px; 
+  cursor: pointer;
+  margin-top: 5px;
+}
+
+.xmas-title { 
+  font-size: 60px; 
+  font-weight: 900; 
+  text-align: center; 
+  margin-bottom: 20px;
+  line-height: 1;
+  text-shadow: 0 0 20px var(--xmas-red); 
+}
+
+/* --- MOBILE RESPONSIVE --- */
+@media (max-width: 850px) {
+  .game-viewport { 
+    transform: scale(0.45); 
+    transform-origin: center top; 
+  }
+  .header-ui { transform: scale(0.8); gap: 5px; }
 }

@@ -3,28 +3,44 @@ import './App.css';
 
 const BIRD_SIZE = 35;
 const PIPE_WIDTH = 60;
-const PIPE_GAP = 160;
+const PIPE_GAP = 170;
 const GAME_WIDTH = 800;
 const GAME_HEIGHT = 600;
 
+// PHYSICS CONSTANTS
+const GRAVITY = 0.2;        
+const JUMP_STRENGTH = -4;   
+const MAX_FALL_SPEED = 2;   
+const SLOWMO_COOLDOWN = 10000; 
+
 function App() {
   const [gameState, setGameState] = useState('MENU');
-  const [showHowTo, setShowHowTo] = useState(false);
+  const [showHowTo, setShowHowTo] = useState(false); 
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [birdPosition, setBirdPosition] = useState(300);
   const [velocity, setVelocity] = useState(0);
   const [pipeHeight, setPipeHeight] = useState(250);
   const [pipeLeft, setPipeLeft] = useState(GAME_WIDTH);
   const [score, setScore] = useState(0);
-  const [lives, setLives] = useState(0);
+  const [lives, setLives] = useState(0); 
   const [playerName, setPlayerName] = useState("");
   const [gameStarted, setGameStarted] = useState(false);
   
+  // BOOST & COOLDOWN STATE
+  const [isSlowMo, setIsSlowMo] = useState(false);
+  const [slowMoTimer, setSlowMoTimer] = useState(0);
+  const [cooldownTimer, setCooldownTimer] = useState(0);
+  const [leaderboard, setLeaderboard] = useState([]);
+
   const lastLifeAwardedAt = useRef(0);
+  const requestRef = useRef();
 
-  const rawMultiplier = 1 + Math.floor(score / 10);
-  const speedMultiplier = Math.min(rawMultiplier, 6); 
-  const currentSpeed = 4 * speedMultiplier;
+  useEffect(() => {
+    const saved = JSON.parse(localStorage.getItem('flappy_leaderboard')) || [];
+    setLeaderboard(saved);
+  }, []);
 
+  // Award lives logic
   useEffect(() => {
     if (score > 0 && score % 10 === 0 && score !== lastLifeAwardedAt.current) {
       setLives(prev => (prev < 5 ? prev + 1 : prev));
@@ -32,54 +48,102 @@ function App() {
     }
   }, [score]);
 
+  // Speed Logic
+  const rawMultiplier = 1 + Math.floor(score / 10) * 0.2;
+  const baseSpeedMultiplier = Math.min(rawMultiplier, 2.0);
+  const speedMultiplier = isSlowMo ? baseSpeedMultiplier * 0.5 : baseSpeedMultiplier;
+  const currentSpeed = 3.5 * speedMultiplier;
+
+  // Timers Logic
+  useEffect(() => {
+    let timer;
+    if ((isSlowMo || cooldownTimer > 0) && gameState === 'PLAYING') {
+      timer = setInterval(() => {
+        if (isSlowMo) {
+          setSlowMoTimer(prev => {
+            if (prev <= 0.1) {
+              setIsSlowMo(false);
+              setCooldownTimer(10.0); 
+              return 0;
+            }
+            return prev - 0.1;
+          });
+        }
+        if (cooldownTimer > 0 && !isSlowMo) {
+          setCooldownTimer(prev => Math.max(0, prev - 0.1));
+        }
+      }, 100);
+    }
+    return () => clearInterval(timer);
+  }, [isSlowMo, cooldownTimer, gameState]);
+
   const startGame = () => {
     setScore(0);
-    setLives(0);
+    setLives(0); 
+    setIsSlowMo(false);
+    setSlowMoTimer(0);
+    setCooldownTimer(0);
     lastLifeAwardedAt.current = 0;
     setGameState('PLAYING');
-    setGameStarted(false);
-    setPipeLeft(GAME_WIDTH + 200);
+    setGameStarted(false); // Triggers the Ready screen
+    setPipeLeft(GAME_WIDTH);
     setBirdPosition(300);
     setVelocity(0);
   };
 
-  // Unified input handler for Click and Touch
+  const handleGameOver = useCallback(() => {
+    const newEntry = { name: playerName || "Anon", score: score, id: Date.now() };
+    const updated = [...leaderboard, newEntry]
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 5);
+    setLeaderboard(updated);
+    localStorage.setItem('flappy_leaderboard', JSON.stringify(updated));
+    setGameState('GAMEOVER');
+  }, [score, playerName, leaderboard]);
+
+  const triggerSlowMo = (e) => {
+    e.stopPropagation();
+    if (gameState === 'PLAYING' && !isSlowMo && cooldownTimer <= 0 && gameStarted) {
+      setIsSlowMo(true);
+      setSlowMoTimer(4.0);
+    }
+  };
+
   const handleAction = useCallback((e) => {
-    // Prevent zooming/scrolling on mobile taps
-    if (e.type === 'touchstart') e.preventDefault();
-    
     if (gameState === 'PLAYING') {
-      if (!gameStarted) setGameStarted(true);
-      setVelocity(-10);
+      if (!gameStarted) {
+        setGameStarted(true); // This starts the physics
+      }
+      setVelocity(JUMP_STRENGTH);
     }
   }, [gameState, gameStarted]);
 
-  useEffect(() => {
+  const animate = useCallback(() => {
     if (gameState === 'PLAYING' && gameStarted) {
-      const id = setInterval(() => {
-        setBirdPosition((pos) => pos + velocity);
-        setVelocity((vel) => vel + 0.8);
-      }, 24);
-      return () => clearInterval(id);
-    }
-  }, [gameState, velocity, gameStarted]);
+      setVelocity(v => {
+        const nextVel = Math.min(v + GRAVITY, MAX_FALL_SPEED);
+        setBirdPosition(pos => pos + nextVel);
+        return nextVel;
+      });
 
-  useEffect(() => {
-    if (gameState === 'PLAYING' && gameStarted) {
-      const id = setInterval(() => {
-        setPipeLeft((l) => {
-          if (l <= -PIPE_WIDTH) {
-            setScore(s => s + 1);
-            setPipeHeight(Math.floor(Math.random() * (GAME_HEIGHT - 300)) + 100);
-            return GAME_WIDTH;
-          }
-          return l - currentSpeed;
-        });
-      }, 24);
-      return () => clearInterval(id);
+      setPipeLeft(prev => {
+        if (prev <= -PIPE_WIDTH) {
+          setScore(s => s + 1);
+          setPipeHeight(Math.floor(Math.random() * (GAME_HEIGHT - 350)) + 100);
+          return GAME_WIDTH; 
+        }
+        return prev - currentSpeed;
+      });
     }
+    requestRef.current = requestAnimationFrame(animate);
   }, [gameState, gameStarted, currentSpeed]);
 
+  useEffect(() => {
+    requestRef.current = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(requestRef.current);
+  }, [animate]);
+
+  // Collision
   useEffect(() => {
     if (gameState !== 'PLAYING' || !gameStarted) return;
     const hitPipes = pipeLeft < 100 + BIRD_SIZE && pipeLeft + PIPE_WIDTH > 100 &&
@@ -88,71 +152,93 @@ function App() {
 
     if (hitPipes || hitBounds) {
       if (lives > 0) {
+        // --- CRITICAL FIX: RESET FOR NEXT LIFE ---
         setLives(l => l - 1);
-        setPipeLeft(GAME_WIDTH + 200);
+        setPipeLeft(GAME_WIDTH);
         setBirdPosition(300);
         setVelocity(0);
-        setGameStarted(false);
+        setGameStarted(false); // This makes "READY?" appear again
+        setIsSlowMo(false);
+        setSlowMoTimer(0);
       } else {
-        setGameState('GAMEOVER');
+        handleGameOver();
       }
     }
-  }, [birdPosition, pipeLeft, lives, gameStarted, gameState, pipeHeight]);
+  }, [birdPosition, pipeLeft, lives, gameStarted, gameState, pipeHeight, handleGameOver]);
 
   return (
-    <div 
-      className="container" 
-      onMouseDown={handleAction} 
-      onTouchStart={handleAction}
-    >
+    <div className="container" onMouseDown={handleAction} onTouchStart={handleAction}>
       <div className="header-ui">
         <div className="stat-pill">SCORE <span className="gold-text">{score}</span></div>
         <div className="stat-pill">LIVES <span className="red-text">🎁 {lives}/5</span></div>
         <div className="stat-pill">SPEED <span className="cyan-text">x{speedMultiplier.toFixed(1)}</span></div>
+        {isSlowMo && <div className="stat-pill boost-pill">SLO-MO: {slowMoTimer.toFixed(1)}s</div>}
       </div>
 
       <div className="game-viewport xmas-bg">
-        {[...Array(10)].map((_, i) => <div key={i} className={`snowflake s-${i}`} />)}
-        <div className="bird ornament" style={{ top: birdPosition, transform: `rotate(${velocity * 3}deg)` }} />
+        <div className="bird ornament" style={{ top: birdPosition, transform: `rotate(${Math.min(velocity * 4, 90)}deg)`, left: '100px' }} />
         <div className="pipe candy-cane" style={{ left: pipeLeft, height: pipeHeight, width: PIPE_WIDTH, top: 0 }} />
         <div className="pipe candy-cane" style={{ left: pipeLeft, top: pipeHeight + PIPE_GAP, height: GAME_HEIGHT - pipeHeight - PIPE_GAP, width: PIPE_WIDTH }} />
 
+        {/* --- READY SCREEN (Shows whenever gameStarted is false) --- */}
         {gameState === 'PLAYING' && !gameStarted && (
           <div className="ready-container">
-             <div className="ready-prompt xmas-text">READY?</div>
+             <div className="ready-prompt">READY?</div>
              <div className="click-hint">TAP TO JUMP! 🎄</div>
           </div>
+        )}
+
+        {gameState === 'PLAYING' && gameStarted && (
+            <button 
+              className={`slow-mo-btn ${cooldownTimer > 0 ? 'cooldown' : ''}`} 
+              onClick={triggerSlowMo} 
+              disabled={isSlowMo || cooldownTimer > 0}
+            >
+                {isSlowMo ? `ACTIVE (${slowMoTimer.toFixed(1)}s)` : 
+                 cooldownTimer > 0 ? `READY IN ${Math.ceil(cooldownTimer)}s` : "❄️ SLO-MO"}
+            </button>
         )}
 
         {gameState === 'MENU' && (
           <div className="menu-overlay">
             <h1 className="xmas-title">MERRY<br/>FLAPPY</h1>
             <div className="glass-panel">
-              <input 
-                type="text" 
-                placeholder="NAME..." 
-                className="modern-input" 
-                value={playerName} 
-                onChange={(e) => setPlayerName(e.target.value)}
-                onMouseDown={(e) => e.stopPropagation()} // Allows typing without jumping
-                onTouchStart={(e) => e.stopPropagation()}
-              />
+              <input type="text" placeholder="NAME..." className="modern-input" value={playerName} onChange={(e) => setPlayerName(e.target.value)} onMouseDown={(e) => e.stopPropagation()} />
               <button className="btn-primary xmas-btn" onClick={startGame}>START</button>
-              <button className="btn-outline" onClick={() => setShowHowTo(true)}>RULES</button>
+              <button className="btn-outline" onClick={(e) => { e.stopPropagation(); setShowHowTo(true); }}>HOW TO PLAY</button>
+              <button className="btn-outline" onClick={(e) => { e.stopPropagation(); setShowLeaderboard(true); }}>LEADERBOARD</button>
+            </div>
+          </div>
+        )}
+
+        {showLeaderboard && (
+          <div className="menu-overlay modal-layer">
+            <div className="glass-panel">
+              <h2 className="gold-text">TOP SCORES</h2>
+              <div className="leaderboard-list">
+                {leaderboard.length > 0 ? leaderboard.map((entry, i) => (
+                  <div key={entry.id} className="leaderboard-item">
+                    <span>{i + 1}. {entry.name}</span>
+                    <span className="gold-text">{entry.score}</span>
+                  </div>
+                )) : <div className="leaderboard-item">No scores yet!</div>}
+              </div>
+              <button className="btn-primary" onClick={(e) => { e.stopPropagation(); setShowLeaderboard(false); }}>CLOSE</button>
             </div>
           </div>
         )}
 
         {showHowTo && (
-          <div className="menu-overlay z-high">
-            <div className="glass-panel">
-              <h2 className="red-text">WINTER RULES</h2>
-              <div className="instruction-content">
-                <p>❄️ Tap to jump</p>
-                <p>🎁 +1 Life (Max 5)</p>
-                <p>⚡ Max speed x6.0</p>
-              </div>
-              <button className="btn-primary xmas-btn" onClick={() => setShowHowTo(false)}>OK!</button>
+          <div className="menu-overlay modal-layer">
+            <div className="glass-panel instruction-panel">
+              <h2 className="gold-text">HOW TO PLAY</h2>
+              <ul className="instruction-list">
+                <li>🖱️ <strong>Click/Tap</strong> to jump up.</li>
+                <li>❄️ <strong>Slo-mo</strong>: 4s duration, 10s cooldown.</li>
+                <li>🎁 Every <strong>10 points</strong> gives a Life.</li>
+                <li>⚡ Speed caps at <strong>x2.0</strong>!</li>
+              </ul>
+              <button className="btn-primary" onClick={(e) => { e.stopPropagation(); setShowHowTo(false); }}>GOT IT!</button>
             </div>
           </div>
         )}
